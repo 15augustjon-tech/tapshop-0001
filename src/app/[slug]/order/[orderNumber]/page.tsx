@@ -1,0 +1,117 @@
+import { notFound } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import Link from 'next/link'
+
+interface PageProps {
+  params: Promise<{ slug: string; orderNumber: string }>
+}
+
+export default async function OrderConfirmationPage({ params }: PageProps) {
+  const { slug, orderNumber } = await params
+  const supabase = await createClient()
+
+  // Get order
+  const { data: order } = await supabase
+    .from('orders')
+    .select('*, sellers(shop_name)')
+    .eq('order_number', orderNumber)
+    .single()
+
+  if (!order) {
+    notFound()
+  }
+
+  const statusMessages: Record<string, { text: string; color: string }> = {
+    pending: { text: 'Waiting for seller to confirm payment', color: 'text-yellow-600' },
+    confirmed: { text: 'Payment confirmed - preparing to ship', color: 'text-blue-600' },
+    shipped: { text: 'On the way! Driver assigned', color: 'text-purple-600' },
+    delivered: { text: 'Delivered successfully', color: 'text-green-600' },
+    cancelled: { text: 'Order cancelled', color: 'text-red-600' },
+  }
+
+  const status = statusMessages[order.order_status] || statusMessages.pending
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white shadow-sm">
+        <div className="max-w-lg mx-auto px-4 py-4">
+          <h1 className="text-lg font-bold text-gray-900">Order Status</h1>
+        </div>
+      </header>
+
+      <main className="max-w-lg mx-auto px-4 py-6">
+        {/* Order Number */}
+        <div className="bg-white rounded-lg shadow-sm p-6 text-center mb-6">
+          <div className="text-green-600 text-5xl mb-4">✓</div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Order Placed!</h2>
+          <p className="text-gray-600 mb-4">Order #{order.order_number}</p>
+          <p className={`font-medium ${status.color}`}>{status.text}</p>
+        </div>
+
+        {/* Order Details */}
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+          <h3 className="font-medium text-gray-900 mb-3">Order Details</h3>
+
+          {order.product_details.map((item: { name: string; price: number; quantity: number }, index: number) => (
+            <div key={index} className="flex justify-between py-2 text-sm border-b last:border-0">
+              <span>{item.name} x {item.quantity}</span>
+              <span>฿{(item.price * item.quantity).toLocaleString()}</span>
+            </div>
+          ))}
+
+          <div className="mt-3 pt-3 border-t space-y-1">
+            <div className="flex justify-between text-sm">
+              <span>Subtotal</span>
+              <span>฿{order.subtotal.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span>Delivery (Pay in cash)</span>
+              <span>฿{order.delivery_fee.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between font-bold">
+              <span>Total</span>
+              <span>฿{order.total_amount.toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Delivery Info */}
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+          <h3 className="font-medium text-gray-900 mb-3">Delivery To</h3>
+          <p className="text-gray-600">{order.buyer_name}</p>
+          <p className="text-gray-600">{order.buyer_phone}</p>
+          <p className="text-gray-600 mt-2">{order.buyer_address}</p>
+        </div>
+
+        {/* Tracking Link */}
+        {order.lalamove_share_link && order.order_status === 'shipped' && (
+          <a
+            href={order.lalamove_share_link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block bg-purple-600 text-white text-center py-3 rounded-lg font-medium mb-6 hover:bg-purple-700"
+          >
+            Track Your Delivery
+          </a>
+        )}
+
+        {/* Payment Reminder */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <p className="text-sm text-blue-800">
+            <strong>Payment:</strong> ฿{order.subtotal.toLocaleString()} via PromptPay
+          </p>
+          <p className="text-sm text-blue-800 mt-1">
+            <strong>Delivery:</strong> ฿{order.delivery_fee.toLocaleString()} cash to driver
+          </p>
+        </div>
+
+        <Link
+          href={`/${slug}`}
+          className="block text-center text-blue-600 font-medium"
+        >
+          ← Back to Shop
+        </Link>
+      </main>
+    </div>
+  )
+}
