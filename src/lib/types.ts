@@ -39,7 +39,6 @@ export interface Order {
   subtotal: number
   delivery_fee: number
   delivery_cost: number | null
-  cod_fee: number
   total_amount: number
   payment_method: string
   payment_status: 'pending' | 'confirmed'
@@ -60,15 +59,16 @@ export interface ProductDetail {
 export interface Delivery {
   id: string
   order_id: string
-  lalamove_quotation_id: string | null
   lalamove_order_id: string | null
-  lalamove_share_link: string | null
+  status: string
+  pickup_address: string | null
+  delivery_address: string | null
+  quoted_fee: number | null
+  actual_cost: number | null
+  share_link: string | null
   driver_name: string | null
   driver_phone: string | null
   driver_plate_number: string | null
-  status: string
-  pickup_time: string | null
-  delivery_time: string | null
   created_at: string
   updated_at: string
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Order } from '@/lib/types'
@@ -14,7 +14,7 @@ export default function OrdersPage() {
   const router = useRouter()
   const supabase = createClient()
 
-  const loadOrders = async () => {
+  const loadOrders = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       router.push('/login')
@@ -40,7 +40,7 @@ export default function OrdersPage() {
       setOrders(data)
     }
     setLoading(false)
-  }
+  }, [supabase, router])
 
   useEffect(() => {
     loadOrders()
@@ -60,7 +60,7 @@ export default function OrdersPage() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [])
+  }, [supabase, loadOrders])
 
   const confirmPayment = async (orderId: string) => {
     setActionLoading(orderId)

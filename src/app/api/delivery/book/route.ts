@@ -38,11 +38,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const seller = order.sellers as { shop_name: string; phone: string; pickup_address: string }
+    const seller = order.sellers as { shop_name: string; phone: string | null; pickup_address: string | null }
 
     if (!seller?.pickup_address) {
       return NextResponse.json(
         { error: 'Seller has no pickup address configured' },
+        { status: 400 }
+      )
+    }
+
+    if (!seller?.phone) {
+      return NextResponse.json(
+        { error: 'Seller has no phone number configured' },
         { status: 400 }
       )
     }
@@ -74,7 +81,7 @@ export async function POST(request: NextRequest) {
     const booking = await bookDelivery({
       quotationId: quote.quotationId,
       senderName: seller.shop_name,
-      senderPhone: seller.phone || '',
+      senderPhone: seller.phone,
       recipientName: order.buyer_name,
       recipientPhone: order.buyer_phone,
       pickupAddress: seller.pickup_address,

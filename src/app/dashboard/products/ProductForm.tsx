@@ -14,7 +14,12 @@ interface ProductFormProps {
 async function compressImage(file: File, maxWidth = 1200, quality = 0.8): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const img = new Image()
+    const objectUrl = URL.createObjectURL(file)
+
     img.onload = () => {
+      // Clean up object URL to prevent memory leak
+      URL.revokeObjectURL(objectUrl)
+
       // Calculate new dimensions
       let width = img.width
       let height = img.height
@@ -50,8 +55,11 @@ async function compressImage(file: File, maxWidth = 1200, quality = 0.8): Promis
         quality
       )
     }
-    img.onerror = () => reject(new Error('Could not load image'))
-    img.src = URL.createObjectURL(file)
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      reject(new Error('Could not load image'))
+    }
+    img.src = objectUrl
   })
 }
 
@@ -131,9 +139,10 @@ export default function ProductForm({ product, onSuccess, onClose }: ProductForm
         seller_id: user.id,
         name,
         description: description || null,
-        price: parseInt(price),
+        price: parseInt(price, 10),
         image_url: imageUrl || null,
-        is_active: true,
+        // Preserve is_active state when editing, default to true for new products
+        is_active: product ? product.is_active : true,
       }
 
       if (product) {

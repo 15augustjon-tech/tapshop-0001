@@ -26,6 +26,20 @@ export async function POST(request: NextRequest) {
 
     const supabase = createAdminClient()
 
+    // Verify seller exists
+    const { data: sellerCheck, error: sellerError } = await supabase
+      .from('sellers')
+      .select('id')
+      .eq('id', seller_id)
+      .single()
+
+    if (sellerError || !sellerCheck) {
+      return NextResponse.json(
+        { error: 'Invalid seller' },
+        { status: 400 }
+      )
+    }
+
     // Generate order number
     const date = new Date()
     const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '')

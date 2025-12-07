@@ -4,13 +4,8 @@ const LALAMOVE_API_KEY = process.env.LALAMOVE_API_KEY || ''
 const LALAMOVE_API_SECRET = process.env.LALAMOVE_API_SECRET || ''
 const LALAMOVE_BASE_URL = process.env.LALAMOVE_BASE_URL || 'https://rest.sandbox.lalamove.com'
 
-interface Location {
-  address: string
-  coordinates?: {
-    lat: number
-    lng: number
-  }
-}
+// Default coordinates for Bangkok city center (used when no coordinates provided)
+const DEFAULT_BANGKOK_COORDS = { lat: 13.7563, lng: 100.5018 }
 
 interface QuoteRequest {
   pickupAddress: string
@@ -100,11 +95,11 @@ export async function getDeliveryQuote(request: QuoteRequest): Promise<{ fee: nu
         language: 'th_TH',
         stops: [
           {
-            coordinates: request.pickupCoordinates || { lat: '13.7563', lng: '100.5018' },
+            coordinates: request.pickupCoordinates || DEFAULT_BANGKOK_COORDS,
             address: request.pickupAddress,
           },
           {
-            coordinates: request.deliveryCoordinates || { lat: '13.7563', lng: '100.5018' },
+            coordinates: request.deliveryCoordinates || DEFAULT_BANGKOK_COORDS,
             address: request.deliveryAddress,
           },
         ],
@@ -120,7 +115,13 @@ export async function getDeliveryQuote(request: QuoteRequest): Promise<{ fee: nu
     }
 
     const data: QuoteResponse = await response.json()
-    const baseFee = parseFloat(data.priceBreakdown.total)
+    const baseFee = parseFloat(data.priceBreakdown?.total || '0')
+
+    // Validate fee is a valid number
+    if (Number.isNaN(baseFee) || baseFee <= 0) {
+      console.error('Invalid fee from Lalamove:', data.priceBreakdown)
+      return null
+    }
 
     return {
       fee: baseFee,
@@ -185,35 +186,6 @@ export async function bookDelivery(request: BookingRequest): Promise<BookingResp
     }
   } catch (error) {
     console.error('Lalamove booking error:', error)
-    return null
-  }
-}
-
-// Get order status from Lalamove
-export async function getOrderStatus(orderId: string): Promise<{ status: string; driverInfo?: BookingResponse['driverInfo'] } | null> {
-  if (!LALAMOVE_API_KEY || !LALAMOVE_API_SECRET) {
-    return null
-  }
-
-  try {
-    const response = await lalamoveRequest('GET', `/v3/orders/${orderId}`)
-
-    if (!response.ok) {
-      return null
-    }
-
-    const data = await response.json()
-
-    return {
-      status: data.data.status,
-      driverInfo: data.data.driverId ? {
-        name: data.data.driver?.name || 'Driver',
-        phone: data.data.driver?.phone || '',
-        plateNumber: data.data.driver?.plateNumber || '',
-      } : undefined,
-    }
-  } catch (error) {
-    console.error('Lalamove status error:', error)
     return null
   }
 }

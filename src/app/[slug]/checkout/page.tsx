@@ -60,8 +60,6 @@ export default function CheckoutPage() {
     setError('')
 
     try {
-      // For now, use a mock delivery fee
-      // Will integrate with Lalamove API later
       const response = await fetch('/api/delivery/quote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -71,21 +69,17 @@ export default function CheckoutPage() {
         }),
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        // Use fallback mock quote if API not ready
-        const mockFee = Math.ceil((Math.random() * 50 + 50) / 5) * 5 // Random 50-100 rounded to 5
-        setDeliveryFee(mockFee)
-      } else {
-        const data = await response.json()
-        setDeliveryFee(data.delivery_fee)
+        setError(data.error || 'Could not get delivery quote. Please try again.')
+        return
       }
 
+      setDeliveryFee(data.delivery_fee)
       setStep('payment')
     } catch {
-      // Use fallback mock quote
-      const mockFee = Math.ceil((Math.random() * 50 + 50) / 5) * 5
-      setDeliveryFee(mockFee)
-      setStep('payment')
+      setError('Could not connect to delivery service. Please try again.')
     } finally {
       setGettingQuote(false)
     }
