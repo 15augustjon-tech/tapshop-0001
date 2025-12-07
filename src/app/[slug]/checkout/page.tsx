@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import type { Product, Seller } from '@/lib/types'
+import PromptPayQR from '@/components/PromptPayQR'
 
 interface CartItem {
   product: Product
@@ -235,8 +236,7 @@ export default function CheckoutPage() {
 
                 {seller.promptpay_id ? (
                   <div className="mt-4">
-                    <p className="text-sm text-gray-600">PromptPay ID:</p>
-                    <p className="text-lg font-mono font-bold">{seller.promptpay_id}</p>
+                    <PromptPayQR promptpayId={seller.promptpay_id} amount={subtotal} />
                   </div>
                 ) : (
                   <p className="mt-4 text-sm text-orange-600">
