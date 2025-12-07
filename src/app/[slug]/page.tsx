@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import type { Product, Seller } from '@/lib/types'
 import StorefrontClient from './StorefrontClient'
 
+export const dynamic = 'force-dynamic'
+
 interface PageProps {
   params: Promise<{ slug: string }>
 }
