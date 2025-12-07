@@ -21,6 +21,18 @@ export default async function OrderConfirmationPage({ params }: PageProps) {
     notFound()
   }
 
+  // Define timeline steps
+  const timelineSteps = [
+    { key: 'pending', label: 'Order Placed', icon: '📋' },
+    { key: 'confirmed', label: 'Payment Confirmed', icon: '✓' },
+    { key: 'shipped', label: 'Out for Delivery', icon: '🚚' },
+    { key: 'delivered', label: 'Delivered', icon: '📦' },
+  ]
+
+  const statusOrder = ['pending', 'confirmed', 'shipped', 'delivered']
+  const currentIndex = statusOrder.indexOf(order.order_status)
+  const isCancelled = order.order_status === 'cancelled'
+
   const statusMessages: Record<string, { text: string; color: string }> = {
     pending: { text: 'Waiting for seller to confirm payment', color: 'text-yellow-600' },
     confirmed: { text: 'Payment confirmed - preparing to ship', color: 'text-blue-600' },
@@ -40,13 +52,72 @@ export default async function OrderConfirmationPage({ params }: PageProps) {
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-6">
-        {/* Order Number */}
+        {/* Order Header */}
         <div className="bg-white rounded-lg shadow-sm p-6 text-center mb-6">
-          <div className="text-green-600 text-5xl mb-4">✓</div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Order Placed!</h2>
-          <p className="text-gray-600 mb-4">Order #{order.order_number}</p>
+          {isCancelled ? (
+            <>
+              <div className="text-red-500 text-5xl mb-4">✗</div>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Order Cancelled</h2>
+            </>
+          ) : order.order_status === 'delivered' ? (
+            <>
+              <div className="text-green-600 text-5xl mb-4">✓</div>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Delivered!</h2>
+            </>
+          ) : (
+            <>
+              <div className="text-blue-600 text-5xl mb-4">📦</div>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Order Placed!</h2>
+            </>
+          )}
+          <p className="text-gray-600 mb-2">Order #{order.order_number}</p>
           <p className={`font-medium ${status.color}`}>{status.text}</p>
         </div>
+
+        {/* Order Timeline */}
+        {!isCancelled && (
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h3 className="font-medium text-gray-900 mb-4">Order Progress</h3>
+            <div className="relative">
+              {timelineSteps.map((step, index) => {
+                const isCompleted = index <= currentIndex
+                const isCurrent = index === currentIndex
+                return (
+                  <div key={step.key} className="flex items-start mb-6 last:mb-0">
+                    {/* Connector line */}
+                    {index < timelineSteps.length - 1 && (
+                      <div
+                        className={`absolute left-4 w-0.5 h-12 -ml-px mt-8 ${
+                          index < currentIndex ? 'bg-green-500' : 'bg-gray-200'
+                        }`}
+                        style={{ top: `${index * 72}px` }}
+                      />
+                    )}
+                    {/* Step circle */}
+                    <div
+                      className={`relative z-10 flex items-center justify-center w-8 h-8 rounded-full text-sm ${
+                        isCompleted
+                          ? 'bg-green-500 text-white'
+                          : 'bg-gray-200 text-gray-400'
+                      } ${isCurrent ? 'ring-4 ring-green-100' : ''}`}
+                    >
+                      {isCompleted ? '✓' : step.icon}
+                    </div>
+                    {/* Step content */}
+                    <div className="ml-4">
+                      <p className={`font-medium ${isCompleted ? 'text-gray-900' : 'text-gray-400'}`}>
+                        {step.label}
+                      </p>
+                      {isCurrent && (
+                        <p className="text-sm text-green-600">Current status</p>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Order Details */}
         <div className="bg-white rounded-lg shadow-sm p-4 mb-6">

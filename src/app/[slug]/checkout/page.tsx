@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import type { Product, Seller } from '@/lib/types'
 import PromptPayQR from '@/components/PromptPayQR'
+import { isValidThaiPhone, isValidAddress } from '@/lib/validation'
 
 interface CartItem {
   product: Product
@@ -21,6 +22,10 @@ export default function CheckoutPage() {
   const [buyerName, setBuyerName] = useState('')
   const [buyerPhone, setBuyerPhone] = useState('')
   const [buyerAddress, setBuyerAddress] = useState('')
+
+  // Validation states
+  const [phoneError, setPhoneError] = useState('')
+  const [addressError, setAddressError] = useState('')
 
   // Delivery quote (will integrate with Lalamove later)
   const [deliveryFee, setDeliveryFee] = useState<number | null>(null)
@@ -52,10 +57,13 @@ export default function CheckoutPage() {
   const total = subtotal + (deliveryFee || 0)
 
   const getDeliveryQuote = async () => {
-    if (!buyerAddress.trim()) {
-      setError('Please enter your delivery address')
+    // Validate address
+    const addressValidation = isValidAddress(buyerAddress)
+    if (!addressValidation.valid) {
+      setAddressError(addressValidation.message || 'Invalid address')
       return
     }
+    setAddressError('')
 
     setGettingQuote(true)
     setError('')
@@ -87,10 +95,21 @@ export default function CheckoutPage() {
   }
 
   const handleSubmitOrder = async () => {
-    if (!buyerName.trim() || !buyerPhone.trim()) {
-      setError('Please fill in your name and phone number')
+    if (!buyerName.trim()) {
+      setError('Please enter your name')
       return
     }
+
+    if (!buyerPhone.trim()) {
+      setPhoneError('Please enter your phone number')
+      return
+    }
+
+    if (!isValidThaiPhone(buyerPhone)) {
+      setPhoneError('Please enter a valid Thai phone number (e.g., 0812345678)')
+      return
+    }
+    setPhoneError('')
 
     setLoading(true)
     setError('')
@@ -197,11 +216,20 @@ export default function CheckoutPage() {
 
             <textarea
               value={buyerAddress}
-              onChange={(e) => setBuyerAddress(e.target.value)}
-              placeholder="Enter your full address (including building, street, district, city)"
+              onChange={(e) => {
+                setBuyerAddress(e.target.value)
+                setAddressError('')
+              }}
+              placeholder="Enter your full address (including building number, street, district, city)"
               rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                addressError ? 'border-red-300 bg-red-50' : 'border-gray-300'
+              }`}
             />
+
+            {addressError && (
+              <p className="text-red-600 text-sm mt-1">{addressError}</p>
+            )}
 
             <p className="text-xs text-gray-500 mt-2">
               Delivery fee will be calculated based on distance. You pay the delivery fee in cash when driver arrives.
@@ -251,20 +279,33 @@ export default function CheckoutPage() {
               <h2 className="font-medium text-gray-900 mb-4">Your Details</h2>
 
               <div className="space-y-3">
-                <input
-                  type="text"
-                  value={buyerName}
-                  onChange={(e) => setBuyerName(e.target.value)}
-                  placeholder="Your name"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <input
-                  type="tel"
-                  value={buyerPhone}
-                  onChange={(e) => setBuyerPhone(e.target.value)}
-                  placeholder="Phone number"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <div>
+                  <input
+                    type="text"
+                    value={buyerName}
+                    onChange={(e) => setBuyerName(e.target.value)}
+                    placeholder="Your name"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <input
+                    type="tel"
+                    value={buyerPhone}
+                    onChange={(e) => {
+                      setBuyerPhone(e.target.value)
+                      setPhoneError('')
+                    }}
+                    placeholder="Phone number (e.g., 0812345678)"
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      phoneError ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                    }`}
+                  />
+                  {phoneError && (
+                    <p className="text-red-600 text-sm mt-1">{phoneError}</p>
+                  )}
+                  <p className="text-xs text-gray-400 mt-1">Thai mobile number starting with 06, 08, or 09</p>
+                </div>
               </div>
             </div>
 
